@@ -1,15 +1,17 @@
-
-
 from urllib import quote as url_quote
+from wsgiproxy.app import WSGIProxyApp
 import wsgiproxy.exactproxy
+
 import gzip
 from StringIO import StringIO
 
 
+#we're going to monkey-patch proxy_exact_request ...
 proxy_exact_request = wsgiproxy.exactproxy.proxy_exact_request
 
 
-def intercepted_proxy(environ, start_response):
+#... with this function to adjust the js coming from the app
+def intercept_and_clean_js(environ, start_response):
     result = proxy_exact_request(environ, start_response)
 
     path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
@@ -26,10 +28,8 @@ def intercepted_proxy(environ, start_response):
 
     return result
 
-wsgiproxy.exactproxy.proxy_exact_request = intercepted_proxy
-
-
-from wsgiproxy.app import WSGIProxyApp
+# ... and finish the patching here
+wsgiproxy.exactproxy.proxy_exact_request = intercept_and_clean_js
 
 
 # Remove "hop-by-hop" headers (as defined by RFC2613, Section 13)
@@ -48,8 +48,6 @@ FILTER_HEADERS = [
 
 def wrap_start_response(environ, start_response):
     def wrapped_start_response(status, headers_out):
-        print status
-
         # Remove "hop-by-hop" headers
         headers_out = [(k, v) for (k, v) in headers_out if k not in FILTER_HEADERS]
         adjusted_headers = headers_out

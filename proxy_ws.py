@@ -1,9 +1,8 @@
 from bottle import request, abort
-from geventwebsocket import WebSocketError
 
 import gevent
-
 import websocket
+from geventwebsocket import WebSocketError
 
 
 def proxy_to_ws(ip):
@@ -32,7 +31,6 @@ def proxy_to_ws(ip):
                 break
 
     return wrapped_proxy_app
-
 
 
 def create_ws_proxies(app, camera_list):
