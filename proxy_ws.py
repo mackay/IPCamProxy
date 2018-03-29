@@ -2,35 +2,56 @@ from bottle import request, abort
 
 import gevent
 import websocket
-from geventwebsocket import WebSocketError
 
 
 def proxy_to_ws(ip):
-    camera_ws = websocket.WebSocket()
-    camera_ws.connect("ws://" + ip + "/ws")
-
-    #this will listen to the camera and return to the client
-    def listener(wsock_client):
-        while True:
-            opcode, message = camera_ws.recv_data()
-            wsock_client.send_frame(message, opcode)
 
     #this will listen to the client and pass on to the camera
-    def wrapped_proxy_app(environ, start_response):
-        client_ws = request.environ.get('wsgi.websocket')
-        if not client_ws:
-            abort(400, 'Expected WebSocket request.')
+    class CameraProxy(object):
 
-        gevent.spawn(listener, client_ws)
+        def __init__(self, environ, start_response):
+            self.environ = environ
+            self.start_response = start_response
+            self.run_threads = True
 
-        while True:
-            try:
-                header, message = client_ws.read_frame()
-                camera_ws.send(message, opcode=header.opcode)
-            except WebSocketError:
-                break
+            self.wrapped_proxy_app(environ, start_response)
 
-    return wrapped_proxy_app
+        def wrapped_proxy_app(self, environ, start_response):
+            camera_ws = websocket.WebSocket()
+            camera_ws.connect("ws://" + ip + "/ws")
+
+            client_ws = request.environ.get('wsgi.websocket')
+            if not client_ws:
+                abort(400, 'Expected WebSocket request.')
+
+            threads = [ gevent.spawn(self.listener, client_ws, camera_ws),
+                        gevent.spawn(self.sender, client_ws, camera_ws) ]
+
+            gevent.joinall( threads )
+
+            camera_ws.close()
+            client_ws.close()
+
+        #this will listen to the camera and return to the client
+        def listener(self, wsock_client, wsock_camera):
+            while self.run_threads:
+                try:
+                    opcode, message = wsock_camera.recv_data()
+                    wsock_client.send_frame(message, opcode)
+                except:
+                    self.run_threads = False
+                    break
+
+        def sender(self, wsock_client, wsock_camera):
+            while self.run_threads:
+                try:
+                    header, message = wsock_client.read_frame()
+                    wsock_camera.send(message, opcode=header.opcode)
+                except:
+                    self.run_threads = False
+                    break
+
+    return CameraProxy
 
 
 def create_ws_proxies(app, camera_list):
