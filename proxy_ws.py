@@ -6,7 +6,6 @@ import websocket
 
 def proxy_to_ws(ip):
 
-    #this will listen to the client and pass on to the camera
     class CameraProxy(object):
 
         def __init__(self, environ, start_response):
@@ -42,6 +41,7 @@ def proxy_to_ws(ip):
                     self.run_threads = False
                     break
 
+        #this will listen to the client and pass on to the camera
         def sender(self, wsock_client, wsock_camera):
             while self.run_threads:
                 try:
