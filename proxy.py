@@ -1,9 +1,11 @@
 from urllib import quote as url_quote
-from wsgiproxy.app import WSGIProxyApp
 import wsgiproxy.exactproxy
 
 import gzip
 from StringIO import StringIO
+
+CLEAN_TARGET = "instacam.amalgamation.js"
+CLEAN_TARGET_ENVIRON_SIZE_KEY = "x-instacam.amalgamation.js-size"
 
 
 #we're going to monkey-patch proxy_exact_request ...
@@ -16,7 +18,7 @@ def intercept_and_clean_js(environ, start_response):
 
     path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
 
-    if "instacam.amalgamation.js" in path:
+    if CLEAN_TARGET in path:
         content = gzip.GzipFile(fileobj=StringIO(result[0])).read()
         content = content.replace("var address = 'ws://' + window.location.host + '/ws';",
                                   "var address = 'ws://' + window.location.href.split('//')[1] + 'ws';")
@@ -26,10 +28,16 @@ def intercept_and_clean_js(environ, start_response):
             f.write(content)
         result[0] = out.getvalue()
 
+        environ[CLEAN_TARGET_ENVIRON_SIZE_KEY] = str(len(result[0]))
+
     return result
 
 # ... and finish the patching here
 wsgiproxy.exactproxy.proxy_exact_request = intercept_and_clean_js
+
+
+#include this AFTER monkey patching - if we include before it will all be for naught
+from wsgiproxy.app import WSGIProxyApp
 
 
 # Remove "hop-by-hop" headers (as defined by RFC2613, Section 13)
@@ -53,11 +61,12 @@ def wrap_start_response(environ, start_response):
         adjusted_headers = headers_out
 
         path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
-        if "instacam.amalgamation.js" in path:
+        if CLEAN_TARGET in path:
             adjusted_headers = [ ]
             for header in headers_out:
                 if header[0].lower() == "content-length":
-                    adjusted_headers.append(("Content-Length", "61505"))
+                    adjusted_headers.append(("Content-Length",
+                                             environ.get(CLEAN_TARGET_ENVIRON_SIZE_KEY, "61505") ))
                 else:
                     adjusted_headers.append(header)
 
