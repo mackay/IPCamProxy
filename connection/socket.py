@@ -3,8 +3,10 @@ from bottle import request, abort
 import gevent
 import websocket
 
+from device.camera import WebsocketCamera
 
-def proxy_to_ws(ip):
+
+def proxy_to_ws(camera):
 
     class CameraProxy(object):
 
@@ -17,7 +19,7 @@ def proxy_to_ws(ip):
 
         def wrapped_proxy_app(self, environ, start_response):
             camera_ws = websocket.WebSocket()
-            camera_ws.connect("ws://" + ip + "/ws")
+            camera_ws.connect("ws://" + camera.ip + "/ws")
 
             client_ws = request.environ.get('wsgi.websocket')
             if not client_ws:
@@ -56,4 +58,6 @@ def proxy_to_ws(ip):
 
 def create_ws_proxies(app, camera_list):
     for camera in camera_list:
-        app.mount("/" + camera + "/ws", proxy_to_ws(camera))
+        if isinstance(camera, WebsocketCamera):
+            print "Socket @ " + "/" + str(camera.ip) + "/ws"
+            app.mount("/" + camera.ip + "/ws", proxy_to_ws(camera))

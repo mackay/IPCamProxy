@@ -2,6 +2,8 @@
 #   wsgiprox[gevent-websocket]
 #   bottle
 #   websocket-client
+from gevent import monkey
+monkey.patch_all()
 
 import bottle
 from bottle import auth_basic, view, redirect
@@ -12,9 +14,10 @@ from geventwebsocket.handler import WebSocketHandler
 from passlib.hash import sha256_crypt
 
 from users import USER_REGISTRY
-from scan import scan_for_cameras, DEFAULT_NETWORK
-from proxy import create_camera_proxies
-from proxy_ws import create_ws_proxies
+from device.scan import scan_for_cameras, DEFAULT_NETWORK
+from connection.proxy import create_camera_proxies
+from connection.socket import create_ws_proxies
+from connection.stream import create_stream_proxies
 
 
 #default server characteristics
@@ -45,13 +48,21 @@ def index():
 @auth_basic(check_pass)
 @view('index')
 def recycle():
-    global cameras
-    global network
-    cameras = scan_for_cameras(network)
-    create_camera_proxies(app, cameras)
-    create_ws_proxies(app, cameras)
+    create_proxies()
 
     redirect("/")
+
+
+def create_proxies():
+    global cameras
+    global network
+    global app
+
+    cameras = scan_for_cameras(network)
+
+    create_camera_proxies(app, cameras)
+    create_ws_proxies(app, cameras)
+    create_stream_proxies(app, cameras)
 
 
 import argparse
@@ -63,9 +74,11 @@ args = parser.parse_args()
 
 network = args.network
 
-cameras = scan_for_cameras(network)
-create_camera_proxies(app, cameras)
-create_ws_proxies(app, cameras)
+create_proxies()
+
+print "Server On: " + str(args.host) + ":" + str(args.port)
+print "Using Network: " + network
+print "Found Cameras: " + str(cameras)
 
 server = WSGIServer((args.host, args.port), app,
                     handler_class=WebSocketHandler

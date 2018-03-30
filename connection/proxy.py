@@ -1,12 +1,7 @@
 from urllib import quote as url_quote
 import wsgiproxy.exactproxy
 
-import gzip
-from StringIO import StringIO
-
-CLEAN_TARGET = "instacam.amalgamation.js"
-CLEAN_TARGET_ENVIRON_SIZE_KEY = "x-instacam.amalgamation.js-size"
-
+from device.cleaner import InstacamCleaner, IPCamCleaner
 
 #we're going to monkey-patch proxy_exact_request ...
 proxy_exact_request = wsgiproxy.exactproxy.proxy_exact_request
@@ -15,20 +10,13 @@ proxy_exact_request = wsgiproxy.exactproxy.proxy_exact_request
 #... with this function to adjust the js coming from the app
 def intercept_and_clean_js(environ, start_response):
     result = proxy_exact_request(environ, start_response)
-
     path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
 
-    if CLEAN_TARGET in path:
-        content = gzip.GzipFile(fileobj=StringIO(result[0])).read()
-        content = content.replace("var address = 'ws://' + window.location.host + '/ws';",
-                                  "var address = 'ws://' + window.location.href.split('//')[1] + 'ws';")
+    cleaners = [ InstacamCleaner(), IPCamCleaner() ]
 
-        out = StringIO()
-        with gzip.GzipFile(fileobj=out, mode="w") as f:
-            f.write(content)
-        result[0] = out.getvalue()
-
-        environ[CLEAN_TARGET_ENVIRON_SIZE_KEY] = str(len(result[0]))
+    for cleaner in cleaners:
+        if cleaner.is_target(path, result[0]):
+            result[0] = cleaner.clean_content(result[0], environ)
 
     return result
 
@@ -54,31 +42,23 @@ FILTER_HEADERS = [
     ]
 
 
-def wrap_start_response(environ, start_response):
+def wrap_start_response(camera, environ, start_response):
     def wrapped_start_response(status, headers_out):
         # Remove "hop-by-hop" headers
-        headers_out = [(k, v) for (k, v) in headers_out if k not in FILTER_HEADERS]
-        adjusted_headers = headers_out
+        adjusted_headers = [(k, v) for (k, v) in headers_out if k not in FILTER_HEADERS]
 
         path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
-        if CLEAN_TARGET in path:
-            adjusted_headers = [ ]
-            for header in headers_out:
-                if header[0].lower() == "content-length":
-                    adjusted_headers.append(("Content-Length",
-                                             environ.get(CLEAN_TARGET_ENVIRON_SIZE_KEY, "61505") ))
-                else:
-                    adjusted_headers.append(header)
+        adjusted_headers = camera.cleaner().clean_headers(headers_out, environ, url=path)
 
         return start_response(status, adjusted_headers)
     return wrapped_start_response
 
 
-def proxy_to_camera(ip):
-    proxy_app = WSGIProxyApp("http://" + ip)
+def proxy_to_camera(camera):
+    proxy_app = WSGIProxyApp("http://" + camera.ip)
 
     def wrapped_proxy_app(environ, start_response):
-        start_response = wrap_start_response(environ, start_response)
+        start_response = wrap_start_response(camera, environ, start_response)
         return proxy_app(environ, start_response)
 
     return wrapped_proxy_app
@@ -86,4 +66,4 @@ def proxy_to_camera(ip):
 
 def create_camera_proxies(app, camera_list):
     for camera in camera_list:
-        app.mount("/" + camera, proxy_to_camera(camera))
+        app.mount("/" + camera.ip, proxy_to_camera(camera))
