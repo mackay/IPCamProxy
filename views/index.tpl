@@ -69,6 +69,7 @@
         }
 
         setInterval(function(){ reload_img_src() }, 15 * 1000);
+        reload_img_src();
     });
     </script>
 </html>
