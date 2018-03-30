@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # pip install...
 #   wsgiprox[gevent-websocket]
 #   bottle
@@ -7,13 +9,14 @@ monkey.patch_all()
 
 import bottle
 from bottle import auth_basic, view, redirect
+from bottle import static_file
 
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
 
 from passlib.hash import sha256_crypt
 
-from users import USER_REGISTRY
+from util.users import USER_REGISTRY
 from device.scan import scan_for_cameras, DEFAULT_NETWORK
 from connection.proxy import create_camera_proxies
 from connection.socket import create_ws_proxies
@@ -53,6 +56,12 @@ def recycle():
     redirect("/")
 
 
+@app.route('/frames/<filename>', method='GET')
+@auth_basic(check_pass)
+def get_frame(filename):
+    return static_file(filename, root="./frames")
+
+
 def create_proxies():
     global cameras
     global network
@@ -73,7 +82,6 @@ parser.add_argument("--network", default=DEFAULT_NETWORK)
 args = parser.parse_args()
 
 network = args.network
-
 create_proxies()
 
 print "Server On: " + str(args.host) + ":" + str(args.port)
