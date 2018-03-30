@@ -41,28 +41,6 @@
                 </div>
             </div>
             % end
-
-            <table class="table table-striped" style="display:none;">
-                <thead>
-                    <tr>
-                        <th>Camera</th>
-                        <th>Last Frame</th>
-                    </tr>
-                </thead>
-
-                % for item in cameras:
-                <tr>
-                    <td class="col-sm-12">
-                        <a href="/{{item}}/">{{item}}</a>
-                    </td>
-                    <td>
-                        <a class="te" href="/frames//{{item}}.jpg" target="_blank">
-                            <img src="./frames/{{item}}_thumbnail.jpg">
-                        </a>
-                    </td>
-                </tr>
-                % end
-            </table>
         </div>
         <div class="container controls">
             <h3>Controls</h3>
