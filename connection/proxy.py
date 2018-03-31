@@ -43,14 +43,18 @@ FILTER_HEADERS = [
     ]
 
 
+def clean_headers_for_proxy(headers):
+    # Remove "hop-by-hop" headers
+    return [(k, v) for (k, v) in headers if k not in FILTER_HEADERS]
+
+
 def wrap_start_response(camera, environ, start_response):
 
     #this will be our hook back to the camera in the proxy
     environ[ENVIRON_CAMERA_KEY] = camera
 
     def wrapped_start_response(status, headers_out):
-        # Remove "hop-by-hop" headers
-        adjusted_headers = [(k, v) for (k, v) in headers_out if k not in FILTER_HEADERS]
+        adjusted_headers = clean_headers_for_proxy(headers_out)
 
         path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
         adjusted_headers = camera.cleaner.clean_headers(headers_out, environ, url=path)
