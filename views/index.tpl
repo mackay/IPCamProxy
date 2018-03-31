@@ -1,6 +1,8 @@
 <html>
 
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
         <!-- Latest compiled and minified CSS -->
@@ -31,10 +33,10 @@
 
             % for item in cameras:
             <div class="row floor text-xs-center">
-                <div class="col-sm-3">
+                <div class="col-md-3">
                     <a href="/{{item}}/">{{item}}</a>
                 </div>
-                <div class="col-sm-9">
+                <div class="col-md-9">
                     <a class="te" href="/frames/{{item}}.jpg" target="_blank">
                         <img src="./frames/{{item}}_thumbnail.jpg">
                     </a>
