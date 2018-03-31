@@ -85,9 +85,10 @@ def create_proxies():
 
     cameras = scan_for_cameras(network)
 
-    create_camera_proxies(app, cameras)
     create_ws_proxies(app, cameras)
     create_stream_proxies(app, cameras)
+
+    create_camera_proxies(app, cameras)
 
 
 import argparse
