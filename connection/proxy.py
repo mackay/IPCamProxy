@@ -1,9 +1,11 @@
 from urllib import quote as url_quote
 import wsgiproxy.exactproxy
 
-from device.cleaner import InstacamCleaner, IPCamCleaner
+#in order to process each camera's js/html/app files ...
+ENVIRON_CAMERA_KEY = "x-camera"
 
-#we're going to monkey-patch proxy_exact_request ...
+
+#... we're going to monkey-patch proxy_exact_request ...
 proxy_exact_request = wsgiproxy.exactproxy.proxy_exact_request
 
 
@@ -12,13 +14,12 @@ def intercept_and_clean_js(environ, start_response):
     result = proxy_exact_request(environ, start_response)
     path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
 
-    cleaners = [ InstacamCleaner(), IPCamCleaner() ]
-
-    for cleaner in cleaners:
-        if cleaner.is_target(path, result[0]):
-            result[0] = cleaner.clean_content(result[0], environ)
+    camera = environ.get(ENVIRON_CAMERA_KEY, None)
+    if camera and camera.cleaner.is_target(path, result[0]):
+        result[0] = camera.cleaner.clean_content(result[0], environ)
 
     return result
+
 
 # ... and finish the patching here
 wsgiproxy.exactproxy.proxy_exact_request = intercept_and_clean_js
@@ -43,12 +44,16 @@ FILTER_HEADERS = [
 
 
 def wrap_start_response(camera, environ, start_response):
+
+    #this will be our hook back to the camera in the proxy
+    environ[ENVIRON_CAMERA_KEY] = camera
+
     def wrapped_start_response(status, headers_out):
         # Remove "hop-by-hop" headers
         adjusted_headers = [(k, v) for (k, v) in headers_out if k not in FILTER_HEADERS]
 
         path = (url_quote(environ.get('SCRIPT_NAME', '')) + url_quote(environ.get('PATH_INFO', '')))
-        adjusted_headers = camera.cleaner().clean_headers(headers_out, environ, url=path)
+        adjusted_headers = camera.cleaner.clean_headers(headers_out, environ, url=path)
 
         return start_response(status, adjusted_headers)
     return wrapped_start_response

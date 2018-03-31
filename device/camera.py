@@ -1,12 +1,9 @@
 
-from device.cleaner import Cleaner, InstacamCleaner, IPCamCleaner
-from device.targets import INSTACAM, IPCAM
-
+from device.cleaner import Cleaner
 import time
 
 
 class Camera(object):
-
     DISCOVERY_TOKEN = "Unknown"
     CLEANER = Cleaner
 
@@ -17,11 +14,12 @@ class Camera(object):
     def __init__(self, ip):
         self.ip = ip
 
-    def cleaner(self):
-        return self.CLEANER()
-
     def __repr__(self):
         return str(self.ip)
+
+    @property
+    def cleaner(self):
+        return self.CLEANER()
 
     def save_frame(self, path_to_file):
         from selenium import webdriver
@@ -48,20 +46,3 @@ class WebsocketCamera(Camera):
 
 class StreamingCamera(Camera):
     pass
-
-
-class InstacamCamera(WebsocketCamera):
-
-    DISCOVERY_TOKEN = INSTACAM.DISCOVERY_TOKEN
-    CLEANER = InstacamCleaner
-
-    def _save_frame_capture(self, driver, path_to_file):
-        time.sleep(2)
-        driver.find_element_by_css_selector('#videoCanvas').click()
-        driver.save_screenshot(path_to_file)
-
-
-class IPCamCamera(StreamingCamera):
-
-    DISCOVERY_TOKEN = IPCAM.DISCOVERY_TOKEN
-    CLEANER = IPCamCleaner

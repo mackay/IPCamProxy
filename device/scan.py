@@ -1,11 +1,9 @@
 import requests
 from requests.exceptions import ConnectionError
-
 from threading import Thread
+from device import ALL_CAMERAS
 
 DEFAULT_NETWORK = "192.168.25"
-
-from device.camera import InstacamCamera, IPCamCamera
 
 
 def do_scan(target_ip, target_cameras, found_ip_container):
@@ -22,7 +20,7 @@ def do_scan(target_ip, target_cameras, found_ip_container):
     return
 
 
-def scan_for_cameras(base_ip_string, target_cameras=[InstacamCamera, IPCamCamera]):
+def scan_for_cameras(base_ip_string, target_cameras=ALL_CAMERAS):
 
     found_cameras = [ ]
     threads = [ ]
@@ -38,6 +36,7 @@ def scan_for_cameras(base_ip_string, target_cameras=[InstacamCamera, IPCamCamera
         thread.join()
 
     return found_cameras
+
 
 if __name__ == "__main__":
     print scan_for_cameras(DEFAULT_NETWORK)
