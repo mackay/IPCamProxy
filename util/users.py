@@ -1,3 +1,7 @@
+import random
+import string
+from passlib.hash import sha256_crypt
+
 
 class UserRegistryEntry(object):
     def __init__(self, username, salt, hashed_password):
@@ -10,8 +14,13 @@ class UserRegistry(object):
     def __init__(self):
         self.users = [ ]
 
-    def add(self, username, salt, hash):
+    def add(self, username, password, salt=None):
         user = self.get_user(username)
+
+        if salt is None:
+            salt = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+
+        hash = sha256_crypt.encrypt(salt + password)
 
         if user is None:
             entry = UserRegistryEntry(username, salt, hash)
@@ -29,4 +38,13 @@ class UserRegistry(object):
 
 
 USER_REGISTRY = UserRegistry()
-USER_REGISTRY.add("cam", "5367105448", "$5$rounds=110000$1ffk0eeSsvrU4kFL$xlS1NJFiD9wARrXcw.OBfnaDJdHeA.O/ripSlOZhjg1" )
+USER_REGISTRY.add("cam", "foo")
+
+
+def check_pass(username, password):
+    user = USER_REGISTRY.get_user(username)
+
+    if user:
+        return sha256_crypt.verify(user.salt + password, user.hash)
+
+    return False

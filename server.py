@@ -15,13 +15,12 @@ from bottle import request
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
 
-from passlib.hash import sha256_crypt
-
-from util.users import USER_REGISTRY
 from device.scan import scan_for_cameras, DEFAULT_NETWORK
 from connection.proxy import create_camera_proxies
 from connection.socket import create_ws_proxies
 from connection.stream import create_stream_proxies
+
+from util.users import check_pass
 
 #have some basic logging to the screen
 import logging
@@ -35,14 +34,6 @@ network = DEFAULT_NETWORK
 
 #the global placeholder for discovered camera IPs
 cameras = [ ]
-
-
-def check_pass(username, password, salt=None):
-    user = USER_REGISTRY.get_user(username)
-    if user:
-        return sha256_crypt.verify(user.salt + password, user.hash)
-
-    return False
 
 
 @app.route('/', method='GET')
