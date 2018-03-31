@@ -59,5 +59,7 @@ def proxy_to_ws(camera):
 def create_ws_proxies(app, camera_list):
     for camera in camera_list:
         if isinstance(camera, WebsocketCamera):
-            print "Socket @ " + "/" + str(camera.ip) + "/ws"
-            app.mount("/" + camera.ip + "/ws", proxy_to_ws(camera))
+            socket_url = "/" + str(camera.ip) + camera.socket_url()
+
+            print "Socket @ " + socket_url
+            app.mount(socket_url, proxy_to_ws(camera))

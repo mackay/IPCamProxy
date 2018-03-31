@@ -42,6 +42,9 @@ class InstacamCamera(WebsocketCamera):
     DISCOVERY_TOKEN = "instacam.amalgamation.js"
     CLEANER = InstacamCleaner
 
+    def socket_url(self):
+        return "/ws"
+
     def _save_frame_capture(self, driver, path_to_file):
         time.sleep(2)
         driver.find_element_by_css_selector('#videoCanvas').click()
@@ -75,3 +78,9 @@ class IPCamCamera(StreamingCamera):
 
     DISCOVERY_TOKEN = "<title>iPCamera for iOS</title>"
     CLEANER = IPCamCleaner
+
+    def stream_url(self):
+        return "/live"
+
+    def _save_frame_url(self):
+        return 'http://' + self.ip + "/live"
