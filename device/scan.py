@@ -6,18 +6,23 @@ from device import ALL_CAMERAS
 DEFAULT_NETWORK = "192.168.25"
 
 
-def do_scan(target_ip, target_cameras, found_ip_container):
+def do_scan(target_ip, target_cameras, found_ip_container, port=80, timeout=1):
     try:
-        req = requests.get('http://' + target_ip, timeout=2)
+        if str(port) != "80":
+            target_ip = target_ip + ":" + str(port)
+
+        req = requests.get('http://' + target_ip, timeout=timeout)
 
         for camera in target_cameras:
             if camera.is_camera(req.text):
                 found_ip_container.append(camera(target_ip))
                 break
+
     except ConnectionError:
         pass
 
     return
+
 
 
 def scan_for_cameras(base_ip_string, target_cameras=ALL_CAMERAS):
@@ -28,7 +33,14 @@ def scan_for_cameras(base_ip_string, target_cameras=ALL_CAMERAS):
     base_ip = ".".join(base_ip_string.split(".")[:3])
     for i in range(256):
         target_ip = base_ip + "." + str(i)
-        thread = Thread(target=do_scan, args=(target_ip, target_cameras, found_cameras))
+        thread = Thread(target=do_scan,
+                        args=(target_ip, target_cameras, found_cameras))
+        thread.start()
+        threads.append(thread)
+
+        thread = Thread(target=do_scan,
+                        args=(target_ip, target_cameras, found_cameras),
+                        kwargs={"port": "8080"})
         thread.start()
         threads.append(thread)
 
