@@ -10,6 +10,7 @@ monkey.patch_all()
 import bottle
 from bottle import auth_basic, view, redirect
 from bottle import static_file
+from bottle import request
 
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
@@ -22,6 +23,11 @@ from connection.proxy import create_camera_proxies
 from connection.socket import create_ws_proxies
 from connection.stream import create_stream_proxies
 
+#have some basic logging to the screen
+import logging
+logging.basicConfig(format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+log = logging.getLogger()
+log.setLevel(logging.INFO)
 
 #default server characteristics
 app = bottle.Bottle()
@@ -60,6 +66,16 @@ def recycle():
 @auth_basic(check_pass)
 def get_frame(filename):
     return static_file(filename, root="./frames")
+
+
+@app.hook('after_request')
+def after_request():
+    log.info("LEAVE: {1} {0} {2}".format(request.path, request.method, request.query_string))
+
+
+@app.hook('before_request')
+def before_request():
+    log.info("ENTER: {1} {0} {2}".format(request.path, request.method, request.query_string))
 
 
 def create_proxies():
