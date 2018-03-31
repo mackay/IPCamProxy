@@ -18,17 +18,19 @@ import argparse
 def capture_screens(cameras, file_location="./"):
     for camera in cameras:
         try:
-            camera.save_frame(file_location + str(camera.ip) + ".png")
+            camera.save_frame(file_location + camera.safe_filename + ".png")
+            print "-> " + file_location + camera.safe_filename + ".png"
         except:
+            print "-x " + file_location + camera.safe_filename + ".png"
             #if we fail to save the frame, we just move on
             continue
 
-        im = Image.open(file_location + str(camera.ip) + ".png")
+        im = Image.open(file_location + camera.safe_filename + ".png")
         rgb_im = im.convert('RGB')
-        rgb_im.save(file_location + str(camera.ip) + ".jpg", quality=75)
+        rgb_im.save(file_location + camera.safe_filename + ".jpg", quality=75)
 
         rgb_im.thumbnail((300, 300), Image.ANTIALIAS)
-        rgb_im.save(file_location + str(camera.ip) + "_thumbnail.jpg", quality=75)
+        rgb_im.save(file_location + camera.safe_filename + "_thumbnail.jpg", quality=75)
 
 
 if __name__ == "__main__":

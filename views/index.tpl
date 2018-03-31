@@ -37,8 +37,8 @@
                     <a href="/{{item}}/">{{item}}</a>
                 </div>
                 <div class="col-md-9">
-                    <a class="te" href="/frames/{{item}}.jpg" target="_blank">
-                        <img src="./frames/{{item}}_thumbnail.jpg">
+                    <a href="/frames/{{item.safe_filename}}.jpg" target="_blank">
+                        <img src="./frames/{{item.safe_filename}}_thumbnail.jpg">
                     </a>
                 </div>
             </div>
